@@ -321,10 +321,11 @@ module.exports = function (/*Buffer|null*/ inBuffer, /** object */ options) {
                 totalEntries++;
             }
 
-            totalSize += mainHeader.mainHeaderSize; // also includes zip file comment length
             // point to end of data and beginning of central directory first record
+            // (has to happen before "mainHeaderSize" is read, it decides if zip64 records are needed)
             mainHeader.offset = dindex;
             mainHeader.totalEntries = totalEntries;
+            totalSize += mainHeader.mainHeaderSize; // also includes zip64 records and zip file comment length
 
             dindex = 0;
             const outBuffer = Buffer.alloc(totalSize);
@@ -343,7 +344,7 @@ module.exports = function (/*Buffer|null*/ inBuffer, /** object */ options) {
             // write main header
             const mh = mainHeader.toBinary();
             if (_comment) {
-                _comment.copy(mh, Utils.Constants.ENDHDR); // add zip file comment
+                _comment.copy(mh, mh.length - mainHeader.commentLength); // add zip file comment
             }
             mh.copy(outBuffer, dindex);
 
@@ -403,10 +404,11 @@ module.exports = function (/*Buffer|null*/ inBuffer, /** object */ options) {
                             compress2Buffer(entryLists);
                         });
                     } else {
-                        totalSize += mainHeader.mainHeaderSize; // also includes zip file comment length
                         // point to end of data and beginning of central directory first record
+                        // (has to happen before "mainHeaderSize" is read, it decides if zip64 records are needed)
                         mainHeader.offset = dindex;
                         mainHeader.totalEntries = totalEntries;
+                        totalSize += mainHeader.mainHeaderSize; // also includes zip64 records and zip file comment length
 
                         dindex = 0;
                         const outBuffer = Buffer.alloc(totalSize);
@@ -421,7 +423,7 @@ module.exports = function (/*Buffer|null*/ inBuffer, /** object */ options) {
 
                         const mh = mainHeader.toBinary();
                         if (_comment) {
-                            _comment.copy(mh, Utils.Constants.ENDHDR); // add zip file comment
+                            _comment.copy(mh, mh.length - mainHeader.commentLength); // add zip file comment
                         }
 
                         mh.copy(outBuffer, dindex); // write main header
